@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALIKOGI - Game Kognitif</title>
+
+<style>
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #eaf3ff;
+  color: #17365d;
+  text-align: center;
+}
+
+.game {
+  max-width: 520px;
+  margin: auto;
+  padding: 22px;
+  background: #1764c0;
+  color: white;
+  border-radius: 22px;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  background: #104b91;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.panel {
+  margin-top: 18px;
+  padding: 20px 12px;
+  background: white;
+  color: #17365d;
+  border-radius: 16px;
+  min-height: 200px;
+}
+
+.hidden { display: none; }
+
+button {
+  padding: 13px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 10px;
+  background: #d5e8ff;
+  color: #123e79;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary {
+  background: #1764c0;
+  color: white;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  max-width: 300px;
+  margin: auto;
+}
+
+.animal {
+  font-size: 100px;
+  margin: 15px;
+}
+
+input {
+  padding: 12px;
+  width: 75%;
+  max-width: 280px;
+  border: 2px solid #b8d4f5;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+#message { min-height: 24px; }
+
+#finalScore {
+  font-size: 36px;
+  color: #1764c0;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div class="game">
+
+<h1>💙 KALIKOGI</h1>
+<p>HITUNG • LIHAT • INGAT</p>
+
+<div class="status">
+  <span id="roundStatus">Ronde 1 dari 50</span>
+  <span id="scoreStatus">Skor: 0 / 100</span>
+</div>
+
+<section id="start" class="panel">
+  <h2>Siap menguji kemampuan kognitifmu?</h2>
+  <p>Jawab perkalian, ingat hewan, dan kumpulkan poin!</p>
+  <button class="primary" onclick="startGame()">Mulai Game</button>
+</section>
+
+<section id="mathPanel" class="panel hidden">
+  <p>TAHAP 1 • HITUNG</p>
+  <h2>Berapa angka satuannya?</h2>
+  <p>Hitung hasil perkalian, lalu pilih angka paling kanan saja!</p>
+  <h2 id="question"></h2>
+  <p>Contoh: 7 × 8 = 56, jadi angka satuannya 6.</p>
+  <div id="choices" class="choices"></div>
+</section>
+
+<section id="lookPanel" class="panel hidden">
+  <p>TAHAP 2 • LIHAT</p>
+  <p>Ingat hewan ini baik-baik!</p>
+  <div id="animalImage" class="animal"></div>
+  <h3 id="timer">3 detik</h3>
+</section>
+
+<section id="recallPanel" class="panel hidden">
+  <p>TAHAP 3 • INGAT</p>
+  <h2>Hewan apa yang tadi kamu lihat?</h2>
+  <p>Gambar sudah disembunyikan. Ketik nama hewannya!</p>
+  <input id="animalAnswer" placeholder="Ketik nama hewan">
+  <br><br>
+  <button class="primary" onclick="submitAnswer()">Jawab</button>
+</section>
+
+<section id="feedbackPanel" class="panel hidden">
+  <h2 id="feedbackTitle"></h2>
+  <p id="feedbackDetails"></p>
+  <button class="primary" onclick="nextRound()" id="nextButton">
+    Ronde Berikutnya
+  </button>
+</section>
+
+<section id="endPanel" class="panel hidden">
+  <h2>🎉 Game Selesai!</h2>
+  <p>Skor akhir kamu:</p>
+  <div id="finalScore">0 / 100</div>
+  <p id="finalMessage"></p>
+  <button class="primary" onclick="startGame()">Main Lagi</button>
+</section>
+
+<p id="message"></p>
+</div>
+
+<script>
+const animals = [
+["kucing","🐱"],["anjing","🐶"],["kelinci","🐰"],
+["singa","🦁"],["monyet","🐵"],["gajah","🐘"],
+["ikan","🐟"],["kupu-kupu","🦋"],["burung","🐦"],
+["katak","🐸"],["bebek","🦆"],["ayam","🐔"],
+["sapi","🐮"],["babi","🐷"],["beruang","🐻"],
+["panda","🐼"],["koala","🐨"],["harimau","🐯"],
+["rubah","🦊"],["serigala","🐺"],["rusa","🦌"],
+["kuda","🐴"],["zebra","🦓"],["jerapah","🦒"],
+["badak","🦏"],["kuda nil","🦛"],["buaya","🐊"],
+["ular","🐍"],["kura-kura","🐢"],["gurita","🐙"],
+["kepiting","🦀"],["udang","🦐"],["lumba-lumba","🐬"],
+["paus","🐳"],["hiu","🦈"],["penguin","🐧"],
+["burung hantu","🦉"],["elang","🦅"],["merak","🦚"],
+["angsa","🦢"],["lebah","🐝"],["siput","🐌"],
+["semut","🐜"],["laba-laba","🕷️"],["nyamuk","🦟"],
+["tikus","🐭"],["hamster","🐹"],["landak","🦔"],
+["kanguru","🦘"],["flamingo","🦩"]
+];
+
+const questions = [
+[7,8],[6,9],[4,7],[8,8],[9,6],
+[3,7],[5,8],[9,9],[6,7],[4,9],
+[8,3],[7,7],[6,8],[9,4],[5,9],
+[3,8],[4,6],[7,9],[8,6],[5,7],
+[9,8],[6,6],[4,8],[3,9],[7,5],
+[8,9],[6,4],[7,6],[5,6],[9,7],
+[3,6],[4,5],[8,7],[9,3],[6,5],
+[7,4],[8,5],[9,2],[3,4],[6,3],
+[7,3],[5,5],[8,4],[9,5],[4,4],
+[2,7],[3,3],[2,9],[5,4],[2,8]
+];
+
+let round = 0;
+let score = 0;
+let currentAnimal;
+let mathCorrect = false;
+let recallDone = false;
+let timerId;
+
+function showPanel(id) {
+  document.querySelectorAll(".panel").forEach(panel => {
+    panel.classList.add("hidden");
+  });
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function updateStatus() {
+  document.getElementById("roundStatus").textContent =
+    `Ronde ${round + 1} dari 50`;
+  document.getElementById("scoreStatus").textContent =
+    `Skor: ${score} / 100`;
+}
+
+function startGame() {
+  clearInterval(timerId);
+  round = 0;
+  score = 0;
+  newRound();
+}
+
+function newRound() {
+  mathCorrect = false;
+  recallDone = false;
+  updateStatus();
+  showPanel("mathPanel");
+
+  const [a,b] = questions[round];
+  const answer = (a * b) % 10;
+
+  document.getElementById("question").textContent =
+    `${a} × ${b} = ?`;
+
+  const options = new Set([answer]);
+  while (options.size < 4) {
+    options.add(Math.floor(Math.random() * 10));
+  }
+
+  const container = document.getElementById("choices");
+  container.innerHTML = "";
+
+  [...options].sort(() => Math.random() - 0.5).forEach(n => {
+    const button = document.createElement("button");
+    button.textContent = n;
+
+    button.onclick = () => {
+      if (recallDone || document.getElementById("mathPanel").classList.contains("hidden")) return;
+      recallDone = true;
+
+      mathCorrect = n === answer;
+      if (mathCorrect) score++;
+
+      updateStatus();
+
+      document.getElementById("message").textContent =
+        mathCorrect ? "Benar! +1 poin" :
+        `Belum tepat. Angka satuannya ${answer}.`;
+
+      setTimeout(showAnimal, 700);
+    };
+
+    container.appendChild(button);
+  });
+}
+
+function showAnimal() {
+  showPanel("lookPanel");
+  currentAnimal = animals[round];
+
+  document.getElementById("animalImage").textContent = currentAnimal[1];
+
+  let seconds = 3;
+  document.getElementById("timer").textContent = "3 detik";
+
+  timerId = setInterval(() => {
+    seconds--;
+
+    if (seconds <= 0) {
+      clearInterval(timerId);
+      document.getElementById("animalImage").textContent = "";
+      showPanel("recallPanel");
+      document.getElementById("animalAnswer").value = "";
+      document.getElementById("animalAnswer").focus();
+    } else {
+      document.getElementById("timer").textContent =
+        seconds + " detik";
+    }
+  }, 1000);
+}
+
+function submitAnswer() {
+  if (document.getElementById("recallPanel").classList.contains("hidden")) return;
+
+  const answer = document.getElementById("animalAnswer")
+    .value.trim().toLowerCase().replace(/\s+/g, " ");
+
+  if (!answer) {
+    document.getElementById("message").textContent =
+      "Ketik nama hewannya terlebih dahulu!";
+    return;
+  }
+
+  const correct = answer === currentAnimal[0];
+
+  if (correct) score++;
+
+  updateStatus();
+  showPanel("feedbackPanel");
+
+  document.getElementById("feedbackTitle").textContent =
+    correct ? "Hebat! Ingatanmu benar!" : "Tetap semangat!";
+  document.getElementById("feedbackDetails").textContent =
+    `Perkalian: ${mathCorrect ? "benar" : "belum tepat"}. ` +
+    `Ingatan: ${correct ? "benar" : "belum tepat"}. ` +
+    `Hewan tadi: ${currentAnimal[0]}.`;
+
+  document.getElementById("nextButton").textContent =
+    round === 49 ? "Lihat Hasil Akhir" : "Ronde Berikutnya →";
+}
+
+document.getElementById("animalAnswer").addEventListener("keydown", e => {
+  if (e.key === "Enter") submitAnswer();
+});
+
+function nextRound() {
+  round++;
+
+  if (round >= 50) {
+    showPanel("endPanel");
+    document.getElementById("finalScore").textContent =
+      `${score} / 100`;
+    document.getElementById("finalMessage").textContent =
+      score >= 90 ? "Luar biasa!" :
+      score >= 70 ? "Bagus, terus berlatih!" :
+      "Terima kasih sudah bermain!";
+    document.getElementById("roundStatus").textContent = "Selesai!";
+    document.getElementById("scoreStatus").textContent =
+      `Skor: ${score} / 100`;
+  } else {
+    newRound();
+  }
+}
+</script>
+</body>
+</html>
